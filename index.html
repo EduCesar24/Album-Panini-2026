@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Álbum Mundial</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0b1220;
+  color: white;
+}
+
+/* HEADER */
+header {
+  position: sticky;
+  top: 0;
+  background: #111827;
+  padding: 10px;
+  text-align: center;
+}
+
+input {
+  padding: 6px;
+  border-radius: 6px;
+  border: none;
+  width: 180px;
+}
+
+/* PROGRESS */
+.progress {
+  width: 90%;
+  height: 10px;
+  background: #334155;
+  margin: 10px auto;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+#progressBar {
+  height: 100%;
+  width: 0%;
+  background: #22c55e;
+}
+
+/* GRID */
+.page {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+/* CARD */
+.card {
+  background: #1e293b;
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+
+.number {
+  font-size: 40px;
+  font-weight: bold;
+}
+
+button {
+  padding: 5px 8px;
+  margin: 3px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add { background: #22c55e; }
+.remove { background: #ef4444; }
+
+/* PAGINATION */
+.pagination {
+  position: sticky;
+  bottom: 0;
+  background: #111827;
+  padding: 10px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.page-box {
+  width: 32px;
+  height: 32px;
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.page-box.active {
+  background: #22c55e;
+  color: black;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>⚽ Álbum Mundial</h1>
+
+  <!-- BUSCADOR -->
+  <div>
+    <input id="searchInput" type="number" placeholder="Buscar estampa">
+    <button onclick="searchSticker()">🔍</button>
+  </div>
+
+  <!-- PROGRESO -->
+  <div class="progress">
+    <div id="progressBar"></div>
+  </div>
+
+  <div id="stats"></div>
+</header>
+
+<div class="page" id="page"></div>
+
+<div class="pagination" id="pagination"></div>
+
+<script>
+
+const TOTAL = 980;
+const PER_PAGE = 16;
+const TOTAL_PAGES = Math.ceil(TOTAL / PER_PAGE);
+
+let stickers = JSON.parse(localStorage.getItem("stickers")) || {};
+let currentPage = 0;
+
+/* GUARDAR */
+function save() {
+  localStorage.setItem("stickers", JSON.stringify(stickers));
+}
+
+/* SUMAR */
+function addOne(i) {
+  stickers[i] = (stickers[i] || 0) + 1;
+  save();
+  render();
+}
+
+/* RESTAR */
+function removeOne(i) {
+  if (!stickers[i]) return;
+  stickers[i]--;
+  if (stickers[i] <= 0) delete stickers[i];
+  save();
+  render();
+}
+
+/* BUSCAR */
+function searchSticker() {
+  const value = parseInt(document.getElementById("searchInput").value);
+
+  if (!value || value < 1 || value > TOTAL) return;
+
+  currentPage = Math.floor((value - 1) / PER_PAGE);
+  render();
+
+  setTimeout(() => {
+    document.querySelectorAll(".card").forEach(card => {
+      if (card.innerText.includes(`#${value}`)) {
+        card.style.outline = "3px solid #22c55e";
+        card.scrollIntoView({ behavior: "smooth" });
+
+        setTimeout(() => card.style.outline = "none", 1500);
+      }
+    });
+  }, 100);
+}
+
+/* RENDER */
+function render() {
+  const page = document.getElementById("page");
+  page.innerHTML = "";
+
+  const start = currentPage * PER_PAGE + 1;
+  const end = start + PER_PAGE;
+
+  for (let i = start; i < end && i <= TOTAL; i++) {
+
+    const count = stickers[i] || 0;
+
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <div class="number">${i}</div>
+      <div>Tienes: ${count}</div>
+      <div>Repetidas: ${Math.max(0, count - 1)}</div>
+
+      <button class="add" onclick="addOne(${i})">➕</button>
+      <button class="remove" onclick="removeOne(${i})">➖</button>
+    `;
+
+    page.appendChild(div);
+  }
+
+  updateStats();
+  renderPagination();
+}
+
+/* PROGRESO */
+function updateStats() {
+  let unique = 0;
+
+  for (let i in stickers) {
+    if (stickers[i] > 0) unique++;
+  }
+
+  let percent = ((unique / TOTAL) * 100).toFixed(1);
+
+  document.getElementById("stats").innerHTML =
+    `Completado: ${unique}/${TOTAL} (${percent}%)`;
+
+  document.getElementById("progressBar").style.width = percent + "%";
+}
+
+/* PAGINACIÓN */
+function renderPagination() {
+  const container = document.getElementById("pagination");
+  container.innerHTML = "";
+
+  for (let i = 0; i < TOTAL_PAGES; i++) {
+
+    const box = document.createElement("div");
+    box.className = "page-box";
+
+    if (i === currentPage) box.classList.add("active");
+
+    box.innerText = i + 1;
+
+    box.onclick = () => {
+      currentPage = i;
+      render();
+    };
+
+    container.appendChild(box);
+  }
+}
+
+/* INICIO */
+render();
+
+</script>
+
+</body>
+</html>
